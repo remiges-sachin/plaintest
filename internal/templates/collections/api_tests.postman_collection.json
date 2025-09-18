@@ -1,0 +1,127 @@
+{
+	"info": {
+		"name": "User API Tests",
+		"description": "Phase 2: CSV-driven tests using authenticated token from Phase 1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Log current test details from CSV or use defaults",
+					"const testId = pm.variables.get('test_id') || 'TC_DEFAULT';",
+					"const testName = pm.variables.get('test_name') || 'Get Current User';",
+					"const inputEndpoint = pm.variables.get('input_endpoint') || '/users/1';",
+					"const inputMethod = pm.variables.get('input_method') || 'GET';",
+					"const expectedStatus = pm.variables.get('expected_status') || '200';",
+					"const expectedUsername = pm.variables.get('expected_username') || '';",
+					"",
+					"console.log('[TEST] ' + testId + ': ' + testName);",
+					"console.log('[INPUT] ' + inputMethod + ' ' + inputEndpoint);",
+					"console.log('[EXPECTED] Status: ' + expectedStatus + ', Username: ' + expectedUsername);",
+					"",
+					"const inputBody = pm.variables.get('input_body');",
+					"if (inputBody) {",
+					"    console.log('[BODY] ' + inputBody);",
+					"}",
+					"",
+					"// Set request properties dynamically",
+					"pm.request.method = inputMethod;",
+					"pm.request.url = pm.variables.get('base_url') + inputEndpoint;",
+					"if (inputBody) {",
+					"    pm.request.body.raw = inputBody;",
+					"}"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "{{test_name}}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"disabled": false
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"disabled": false
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{{input_body}}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{base_url}}/auth/me"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const expectedStatus = parseInt(pm.variables.get('expected_status') || '200');",
+							"const expectedUsername = pm.variables.get('expected_username') || '';",
+							"const inputMethod = pm.variables.get('input_method') || 'GET';",
+							"",
+							"pm.test('Status code is ' + expectedStatus, function () {",
+							"    pm.response.to.have.status(expectedStatus);",
+							"});",
+							"",
+							"if (expectedStatus === 200) {",
+							"    pm.test('Response has expected data structure for GET', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response).to.have.property('id');",
+							"        ",
+							"        // Check if this is user endpoint response",
+							"        if (pm.variables.get('input_endpoint') && pm.variables.get('input_endpoint').includes('/auth/me')) {",
+							"            pm.expect(response).to.have.property('username');",
+							"            pm.expect(response).to.have.property('email');",
+							"        } else {",
+							"            // Default to user data structure",
+							"            pm.expect(response).to.have.property('firstName');",
+							"            pm.expect(response).to.have.property('email');",
+							"        }",
+							"    });",
+							"    ",
+							"    if (expectedUsername) {",
+							"        pm.test('Username matches expected: ' + expectedUsername, function () {",
+							"            const response = pm.response.json();",
+							"            pm.expect(response.username).to.eql(expectedUsername);",
+							"        });",
+							"    }",
+							"}",
+							"",
+							"if (expectedStatus === 201 && inputMethod === 'POST') {",
+							"    pm.test('POST response has expected structure', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response).to.have.property('id');",
+							"        ",
+							"        // For posts endpoint",
+							"        if (pm.variables.get('input_endpoint').includes('/posts/')) {",
+							"            pm.expect(response).to.have.property('title');",
+							"            pm.expect(response).to.have.property('userId');",
+							"        }",
+							"    });",
+							"    ",
+							"    pm.test('POST created new resource with ID', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response.id).to.be.above(0);",
+							"    });",
+							"}"
+						]
+					}
+				}
+			]
+		}
+	]
+}

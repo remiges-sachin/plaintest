@@ -1,0 +1,98 @@
+test_id,test_scenario,test_description,test_endpoint,test_method,test_result,test_comments,input_pan_no,input_dob,input_iop_flag,input_pos_code,input_okra_code,input_okra_batch,input_request_date,input_total_records,expected_http_status,expected_app_status
+TC_INQ_REQ_001,TS_INQ_RES_001,Verify that user should get error message for blank field,pan_validation,POST,Pass,,,,,,,,,,400,
+TC_INQ_REQ_002,TS_INQ_RES_001,Verify that valid PAN allow successful submission,pan_validation,POST,Pass,,OVSWF8950H,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_003,TS_INQ_RES_001,Verify that without PAN a do not allow successful submission,pan_validation,POST,Pass,,,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_004,TS_INQ_RES_001,Verify that Invalid PAN do not allow successful submission,pan_validation,POST,Pass,,!@#$%^&*,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_005,TS_INQ_RES_001,Valid PAN with Alphanumeric 5-4-1 Length exact 10 Order of format AAAAANNNNA,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_006,TS_INQ_RES_001,Valid PAN with uppercase alphabets,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_007,TS_INQ_RES_001,Valid PAN with all 5 alphabets at start,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_008,TS_INQ_RES_001,Valid PAN with 4 numeric digits after 5 alphabets,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_009,TS_INQ_RES_001,Valid PAN with 1 alpha digit at last,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_010,TS_INQ_RES_001,Valid PAN with length exact 10,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_011,TS_INQ_RES_001,Valid PAN with Order of format AAAAANNNNA,pan_validation,POST,Pass,,AAAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_012,TS_INQ_RES_001,Invalid PAN - Not an Alphanumeric,pan_validation,POST,Pass,,@#$$%^&,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_013,TS_INQ_RES_001,Invalid PAN - length greater than 10,pan_validation,POST,Pass,,AAAAA1234ADFG,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_014,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAANNNNNA,pan_validation,POST,Pass,,AAAA1234A,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_015,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAAANNNA,pan_validation,POST,Pass,,AAAA123A,28-08-1997,IE,A1250,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_016,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAAANNNNN,pan_validation,POST,Pass,,AAAAA12345,28-08-1998,IE,A1251,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_017,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAAANNNN,pan_validation,POST,Pass,,AAAAA1234,28-08-1999,IE,A1252,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_018,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAAANNNNN,pan_validation,POST,Pass,,AAAAA12345,28-08-2000,IE,A1253,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_019,TS_INQ_RES_001,Invalid PAN - order of format not valid AAAAAAAAAA,pan_validation,POST,Pass,,AAAAAAAAA,28-08-2001,IE,A1254,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_020,TS_INQ_RES_001,Invalid PAN - order of format not valid NNNNNAAAAA,pan_validation,POST,Pass,,12345AAAAA,28-08-2002,IE,A1255,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_021,TS_INQ_RES_001,Invalid PAN - order of format not valid AAA@ANNNA,pan_validation,POST,Pass,,AAA@A123A,28-08-2003,IE,A1256,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_022,TS_INQ_RES_001,Invalid PAN - order of format not valid aaaaaNNNNa,pan_validation,POST,Pass,,aaaaa1234a,28-08-2004,IE,A1257,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_023,TS_INQ_RES_001,Invalid PAN - PAN with 5 digits at the start,pan_validation,POST,Pass,,12345AAAAA,28-08-2005,IE,A1258,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_024,TS_INQ_RES_001,Invalid PAN - PAN with 4 chars at the middle,pan_validation,POST,Pass,,1234AAAA12,28-08-2006,IE,A1259,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_025,TS_INQ_RES_001,Invalid PAN - PAN with 1 numeric at the last,pan_validation,POST,Pass,,AAAAAAAA1,28-08-2007,IE,A1260,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_026,TS_INQ_RES_001,Invalid PAN - PAN with missing last alphabet,pan_validation,POST,Pass,,AAAAA9018,28-08-2008,IE,A1261,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_027,TS_INQ_RES_001,Invalid PAN - PAN with special characters anywhere,pan_validation,POST,Pass,,AAAAA@1234,28-08-2009,IE,A1262,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_028,TS_INQ_RES_001,Invalid PAN - PAN with lowercase alphabets,pan_validation,POST,Pass,,aaaaa1234a,28-08-2010,IE,A1263,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_029,TS_INQ_RES_001,Invalid PAN - PAN with missing last alphabet,pan_validation,POST,Pass,,AAAAA1234Q,28-08-2011,IE,A1264,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_030,TS_INQ_RES_001,Invalid PAN - PAN with whitespace in input,pan_validation,POST,Pass,,AAAAA1234 Q,28-08-2012,IE,A1265,CVL,1234,24-07-2025,1,200,WEBERR-999
+TC_INQ_REQ_031,TS_INQ_RES_001,Verify that user with valid DOB allow successful submission,pan_validation,POST,Pass,,TJBKZ7939Z,28-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_032,TS_INQ_RES_001,Verify that user without valid DOB allow successful submission,pan_validation,POST,Pass,,SIQED2098C,28-08$1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_033,TS_INQ_RES_001,Verify that user with future DOB not allow successful submission,pan_validation,POST,Pass,,QQUOT5355Q,28-08-2099,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_034,TS_INQ_RES_001,Invalid DOB - mddyyyy format,pan_validation,POST,Pass,,DKSUY8121Y,1-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_035,TS_INQ_RES_001,Invalid DOB - yyyymmdd format,pan_validation,POST,Pass,,FPZKW1755M,2001-01-08,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_036,TS_INQ_RES_001,Invalid DOB - ddmmyy format,pan_validation,POST,Pass,,EPQOU5447G,01-08-01,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_037,TS_INQ_RES_001,Invalid DOB - ddyyyymm format,pan_validation,POST,Pass,,XZVLB5735K,23-2001-06,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_038,TS_INQ_RES_001,Invalid DOB format - Wrong separator (/ instead of -),pan_validation,POST,Pass,,SLAIC7960N,28/08/1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_039,TS_INQ_RES_001,Invalid DOB format - Invalid day (32),pan_validation,POST,Pass,,SEZJS5502M,32-08-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_040,TS_INQ_RES_001,Invalid DOB format - Invalid month (13),pan_validation,POST,Pass,,EEHJX7225T,28-13-1996,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-012
+TC_INQ_REQ_041,TS_INQ_RES_001,Verify that valid IOP Flag allow successful submission,pan_validation,POST,Pass,,XURVZ3913N,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_042,TS_INQ_RES_001,Verify that without IOP Flag a do not allow successful submission,pan_validation,POST,Pass,,UYFDM7527R,28-08-2001,,A1249,CVL,1234,24-07-2025,1,200,WEBERR-038
+TC_INQ_REQ_043,TS_INQ_RES_001,Invalid IOP Flag - other than IE,pan_validation,POST,Pass,,URLWQ1512C,28-08-2001,DF,A1249,CVL,1234,24-07-2025,1,200,WEBERR-039
+TC_INQ_REQ_044,TS_INQ_RES_001,Invalid IOP Flag - lower case ie,pan_validation,POST,Pass,,ESCCF3417N,28-08-2001,ie,A1249,CVL,1234,24-07-2025,1,200,WEBERR-039
+TC_INQ_REQ_045,TS_INQ_RES_001,Invalid IOP Flag - with white space I E,pan_validation,POST,Pass,,NODID7280Y,28-08-2001,I E,A1249,CVL,1234,24-07-2025,1,200,WEBERR-039
+TC_INQ_REQ_046,TS_INQ_RES_001,Verify that POS Code allow successful submission,pan_validation,POST,Pass,,HPBZT9608Z,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_047,TS_INQ_RES_001,Verify that without POS Code do not allow successful submission,pan_validation,POST,Pass,,ETCLG7311T,28-08-2001,IE,,CVL,1234,24-07-2025,1,200,WEBERR-042
+TC_INQ_REQ_048,TS_INQ_RES_001,Valid POS Code - 1234567890,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_049,TS_INQ_RES_001,Valid POS Code - ABCD1234EF,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_050,TS_INQ_RES_001,Valid POS Code - a1B2c3D4e5,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_051,TS_INQ_RES_001,Valid POS Code - ABCD1234EF,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_052,TS_INQ_RES_001,Valid POS Code - length exact 10,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_053,TS_INQ_RES_001,Invalid POS Code - length greater than 10,pan_validation,POST,,,,,,,,,,,400,WEBERR-002
+TC_INQ_REQ_054,TS_INQ_RES_001,Invalid POS Code - with space A1B2 C3D4E5,pan_validation,POST,,,,,,,,,,,400,WEBERR-002
+TC_INQ_REQ_055,TS_INQ_RES_001,Invalid POS Code - with special character A1B2-C3D4E5,pan_validation,POST,,,,,,,,,,,400,WEBERR-002
+TC_INQ_REQ_056,TS_INQ_RES_001,Verify that OKRA Code allow successful submission,pan_validation,POST,Pass,,GLPSF8537F,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_057,TS_INQ_RES_001,Verify that without OKRA Code do not allow successful submission,pan_validation,POST,Pass,,YAHYT6000C,28-08-2001,IE,A1249,,1234,24-07-2025,1,400,WEBERR-040
+TC_INQ_REQ_058,TS_INQ_RES_001,Valid OKRA Code - alphabetical,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_059,TS_INQ_RES_001,Valid OKRA Code - uppercase,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_060,TS_INQ_RES_001,Valid OKRA Code - length upto limit,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_061,TS_INQ_RES_001,Invalid OKRA Code - length greater than limit,pan_validation,POST,,,,,,,,,,,400,WEBERR-040
+TC_INQ_REQ_062,TS_INQ_RES_001,Invalid OKRA Code - Lower case,pan_validation,POST,,,,,,,,,,,400,WEBERR-040
+TC_INQ_REQ_063,TS_INQ_RES_001,Invalid OKRA Code - numeric value,pan_validation,POST,,,,,,,,,,,400,WEBERR-040
+TC_INQ_REQ_064,TS_INQ_RES_001,Invalid OKRA Code - Special character,pan_validation,POST,,,,,,,,,,,400,WEBERR-040
+TC_INQ_REQ_065,TS_INQ_RES_001,Invalid OKRA Code - with space,pan_validation,POST,,,,,,,,,,,400,WEBERR-040
+TC_INQ_REQ_066,TS_INQ_RES_001,Verify that OKRA batch allow successful submission,pan_validation,POST,Pass,,EJQPM8540T,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_067,TS_INQ_RES_001,Verify that without OKRA batch do not allow successful submission,pan_validation,POST,Pass,,LKTGJ2988Y,28-08-2001,IE,A1249,CVL,,24-07-2025,1,400,WEBERR-041
+TC_INQ_REQ_068,TS_INQ_RES_001,Valid OKRA batch - numeric,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_069,TS_INQ_RES_001,Valid OKRA batch - length upto 10,pan_validation,POST,,,,,,,,,,,200,WEBERR-044
+TC_INQ_REQ_070,TS_INQ_RES_001,Invalid OKRA batch - length greater than 10,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_071,TS_INQ_RES_001,Invalid OKRA batch - Decimal,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_072,TS_INQ_RES_001,Invalid OKRA batch - alphabetical,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_073,TS_INQ_RES_001,Invalid OKRA batch - alphanumeric,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_074,TS_INQ_RES_001,Invalid OKRA batch - Special character,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_075,TS_INQ_RES_001,Invalid OKRA batch - with space,pan_validation,POST,,,,,,,,,,,400,WEBERR-041
+TC_INQ_REQ_076,TS_INQ_RES_001,Verify that application Request date allow successful submission,pan_validation,POST,Pass,,UHHHT8601K,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_077,TS_INQ_RES_001,Verify that without application Request date do not allow successful submission,pan_validation,POST,Pass,,EHWYG8664J,28-08-2001,IE,A1249,CVL,1234,,1,400,WEBERR-043
+TC_INQ_REQ_078,TS_INQ_RES_001,Valid format application Request date - DD-MM-YYYY,pan_validation,POST,Pass,,VPWAV7285R,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_079,TS_INQ_RES_001,Invalid format application Request date - mddyyyy,pan_validation,POST,Pass,,FTAFT7730O,28-08-2001,IE,A1249,CVL,1234,1-08-2001,1,400,WEBERR-043
+TC_INQ_REQ_080,TS_INQ_RES_001,Invalid format application Request date - yyyymmdd,pan_validation,POST,Pass,,BYBYP3175S,28-08-2001,IE,A1249,CVL,1234,2001-01-08,1,400,WEBERR-043
+TC_INQ_REQ_081,TS_INQ_RES_001,Invalid format application Request date - ddmmyy,pan_validation,POST,Pass,,QVDVP4753J,28-08-2001,IE,A1249,CVL,1234,01-08-01,1,400,WEBERR-043
+TC_INQ_REQ_082,TS_INQ_RES_001,Invalid format application Request date - ddyyyymm,pan_validation,POST,Pass,,BAWXX2342D,28-08-2001,IE,A1249,CVL,1234,23-2001-06,1,400,WEBERR-043
+TC_INQ_REQ_083,TS_INQ_RES_001,Invalid format application Request date - Wrong separator (/ instead of -),pan_validation,POST,Pass,,EZCQP8324E,28-08-2001,IE,A1249,CVL,1234,24/07/2025,1,400,WEBERR-043
+TC_INQ_REQ_084,TS_INQ_RES_001,Invalid format application Request date - Invalid day (32),pan_validation,POST,Pass,,OOHXZ5947Y,28-08-2001,IE,A1249,CVL,1234,32-12-2025,1,400,WEBERR-043
+TC_INQ_REQ_085,TS_INQ_RES_001,Invalid format application Request date - Invalid month (13),pan_validation,POST,Pass,,XXOJO5724J,28-08-2001,IE,A1249,CVL,1234,32-13-2025,1,400,WEBERR-043
+TC_INQ_REQ_086,TS_INQ_RES_001,Invalid format application Request date - Future date,pan_validation,POST,Pass,,RHUNO3848B,28-08-2001,IE,A1249,CVL,1234,31-07-2025,1,400,WEBERR-043
+TC_INQ_REQ_087,TS_INQ_RES_001,Verify that Application total records allow successful submission,pan_validation,POST,Pass,,LWTFS2125F,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_088,TS_INQ_RES_001,Verify that without Application total records do not allow successful submission,pan_validation,POST,Pass,,FGDQU6042E,28-08-2001,IE,A1249,CVL,1234,24-07-2025,,400,WEBERR-006
+TC_INQ_REQ_089,TS_INQ_RES_001,Valid case Application total records - value 1,pan_validation,POST,Pass,,MYPFE9121N,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_090,TS_INQ_RES_001,Verify that if pan is one then total record value should be 1 only,pan_validation,POST,Pass,,TWYBY7516Q,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,200,WEBERR-044
+TC_INQ_REQ_091,TS_INQ_RES_001,Verify that if pan is one then total record value should not be greater than 2,pan_validation,POST,Pass,manual test,NKQCO9350I,28-08-2001,IE,A1249,CVL,1234,24-07-2025,2,400,WEBERR-006
+TC_INQ_REQ_092,TS_INQ_RES_001,Valid case Application total records - range 1-25,pan_validation,POST,Pass,manual test,NWCBM7244P,28-08-2001,IE,A1249,CVL,1234,24-07-2025,2,200,WEBERR-044
+TC_INQ_REQ_093,TS_INQ_RES_001,Invalid case Application total records - range 0,pan_validation,POST,Pass,,DQLYA9216T,28-08-2001,IE,A1249,CVL,1234,24-07-2025,0,400,WEBERR-006
+TC_INQ_REQ_094,TS_INQ_RES_001,Invalid case Application total records - range above 26,pan_validation,POST,Pass,manual test,,,,,,,,,400,WEBERR-006
+TC_INQ_REQ_095,TS_INQ_RES_001,Invalid case Application total records - alphabetical AA,pan_validation,POST,Pass,,DLYQS9189Y,28-08-2001,IE,A1249,CVL,1234,24-07-2025,A,400,WEBERR-006
+TC_INQ_REQ_096,TS_INQ_RES_001,Invalid case Application total records - special characters @@,pan_validation,POST,Pass,,UYJBP3578N,28-08-2001,IE,A1249,CVL,1234,24-07-2025,@@,400,WEBERR-006
+TC_INQ_REQ_097,TS_INQ_RES_001,Invalid case Application total records with white space,pan_validation,POST,Pass,,JUUBY2128U,28-08-2001,IE,A1249,CVL,1234,24-07-2025,1,400,WEBERR-006
