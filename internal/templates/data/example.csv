@@ -1,0 +1,5 @@
+test_id,test_name,test_description,input_endpoint,input_method,expected_status,expected_username,input_body
+TC_001,Valid Auth User,Get current authenticated user,/auth/me,GET,200,emilys,
+TC_002,Auth Required,Get user profile via auth,/auth/me,GET,200,emilys,
+TC_003,Create New Post,Create a new post via API,/posts/add,POST,201,,"{ ""title"": ""My new post"", ""userId"": 1 }"
+TC_004,Create User Post,Create post for specific user,/posts/add,POST,201,,"{ ""title"": ""Testing PlainTest POST"", ""userId"": 5 }"
