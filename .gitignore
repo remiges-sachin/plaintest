@@ -24,6 +24,11 @@ go.work
 /plaintest
 plaintest-*
 
+# GoReleaser artifacts
+*.tar.gz
+*.zip
+checksums.txt
+
 # IDE files
 .vscode/
 .idea/

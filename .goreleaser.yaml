@@ -1,0 +1,51 @@
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: plaintest
+    main: ./cmd/plaintest
+    binary: plaintest
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/ssd532/plaintest/internal/core.Version={{.Version}}
+
+archives:
+  - id: plaintest-archive
+    builds:
+      - plaintest
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "plaintest_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE*
+      - QUICK_START.md
+      - USER_DOCS.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-dev"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
