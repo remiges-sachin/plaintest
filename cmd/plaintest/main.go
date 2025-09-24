@@ -41,7 +41,7 @@ var initCmd = &cobra.Command{
 		}
 		fmt.Println("PlainTest project initialized successfully!")
 		fmt.Println("Try: plaintest run smoke")
-		fmt.Println("Or:  plaintest run get_auth api_tests")
+		fmt.Println("Or:  plaintest run --setup get_auth --test api_tests")
 		fmt.Println("Or:  plaintest run api_tests -d data/example.csv")
 	},
 }
@@ -49,10 +49,23 @@ var initCmd = &cobra.Command{
 var rowSelection string
 var debugNewman bool
 var generateReports bool
-var collectionsToRunOnce []string
+var setupLinks []string
+var testLinks []string
 var generatedReports []string
 
-// Flag constants for better self-documentation
+// LinkSpec represents a parsed link specification
+type LinkSpec struct {
+	Collection string
+	Items      []string // Empty means whole collection
+}
+
+// ExecutionPhase represents setup or test phase
+type ExecutionPhase struct {
+	Links []LinkSpec
+	Phase string // "setup" or "test"
+}
+
+// Flag constants for command line flags
 const (
 	envShortFlag  = "-e"
 	envLongFlag   = "--environment"
@@ -75,6 +88,200 @@ const (
 	timestampFormat = "20060102T150405"
 )
 
+// parseLinkSpec parses a link specification like "collection.item1,item2"
+func parseLinkSpec(linkSpec string) (LinkSpec, error) {
+	// Handle quoted strings and dots
+	parts := strings.SplitN(linkSpec, ".", 2)
+	if len(parts) == 1 {
+		// Just collection name
+		collection := strings.Trim(parts[0], "\"")
+		return LinkSpec{Collection: collection, Items: []string{}}, nil
+	}
+
+	// Collection and items
+	collection := strings.Trim(parts[0], "\"")
+	itemsStr := strings.Trim(parts[1], "\"")
+
+	var items []string
+	if itemsStr != "" {
+		// Split by comma and trim spaces
+		rawItems := strings.Split(itemsStr, ",")
+		for _, item := range rawItems {
+			trimmed := strings.TrimSpace(item)
+			if trimmed != "" {
+				items = append(items, trimmed)
+			}
+		}
+	}
+
+	// Ensure items is never nil for consistent comparison
+	if items == nil {
+		items = []string{}
+	}
+
+	return LinkSpec{Collection: collection, Items: items}, nil
+}
+
+// parsePhases parses setup and test links into execution phases
+func parsePhases(setupLinks, testLinks []string) ([]ExecutionPhase, error) {
+	phases := make([]ExecutionPhase, 0)
+
+	// Parse setup phase if any setup links
+	if len(setupLinks) > 0 {
+		var setupSpecs []LinkSpec
+		for _, link := range setupLinks {
+			spec, err := parseLinkSpec(link)
+			if err != nil {
+				return nil, fmt.Errorf("invalid setup link '%s': %v", link, err)
+			}
+			setupSpecs = append(setupSpecs, spec)
+		}
+		phases = append(phases, ExecutionPhase{Links: setupSpecs, Phase: "setup"})
+	}
+
+	// Parse test phase if any test links
+	if len(testLinks) > 0 {
+		var testSpecs []LinkSpec
+		for _, link := range testLinks {
+			spec, err := parseLinkSpec(link)
+			if err != nil {
+				return nil, fmt.Errorf("invalid test link '%s': %v", link, err)
+			}
+			testSpecs = append(testSpecs, spec)
+		}
+		phases = append(phases, ExecutionPhase{Links: testSpecs, Phase: "test"})
+	}
+
+	return phases, nil
+}
+
+// executeLinkSpec executes a single link specification
+func executeLinkSpec(linkSpec LinkSpec, phase string, linkIndex, totalLinks int, config *DiscoveryConfig,
+	newmanFlags []string, service *newman.Service, tempEnvFile *string) error {
+
+	// Find collection path
+	collectionPath, err := getCollectionPath(linkSpec.Collection, config)
+	if err != nil {
+		return err
+	}
+
+	// Build flags for this link
+	currentFlags := make([]string, len(newmanFlags))
+	copy(currentFlags, newmanFlags)
+
+	// Add folder selections if any
+	for _, item := range linkSpec.Items {
+		currentFlags = append(currentFlags, "--folder", item)
+	}
+
+	// For setup phase, remove CSV iteration flags
+	if phase == "setup" {
+		currentFlags = removeCsvFlags(currentFlags)
+	}
+
+	// Apply row selection if specified and this is test phase
+	if phase == "test" && rowSelection != "" {
+		currentFlags = applyRowSelection(currentFlags, rowSelection)
+	}
+
+	// Use shared environment from previous link
+	if *tempEnvFile != "" {
+		currentFlags = replaceEnvironmentInFlags(currentFlags, *tempEnvFile)
+	}
+
+	// Add report flags if requested
+	if generateReports {
+		currentFlags = addReportFlags(currentFlags, linkSpec.Collection)
+	}
+
+	// Print execution status
+	printLinkStatus(linkSpec, phase, linkIndex, totalLinks)
+
+	var result *newman.Result
+
+	// If not the last link, export environment for next link
+	if linkIndex < totalLinks {
+		if *tempEnvFile == "" {
+			*tempEnvFile, err = createTempEnvironmentFile()
+			if err != nil {
+				return fmt.Errorf("creating temporary environment file: %v", err)
+			}
+		}
+		result, err = service.RunWithEnvironmentExport(collectionPath, currentFlags, *tempEnvFile)
+	} else {
+		result, err = service.RunWithFlags(collectionPath, currentFlags)
+	}
+
+	if err != nil {
+		if result != nil && result.Output != "" {
+			fmt.Println("Newman output:")
+			fmt.Println(result.Output)
+		}
+		return fmt.Errorf("execution failed: %v", err)
+	}
+
+	return handleResult(result, linkSpec.Collection, currentFlags)
+}
+
+// getCollectionPath validates and returns the collection path
+func getCollectionPath(collectionName string, config *DiscoveryConfig) (string, error) {
+	collectionPath, exists := config.Collections[collectionName]
+	if !exists {
+		availableCollections := make([]string, 0, len(config.Collections))
+		for name := range config.Collections {
+			availableCollections = append(availableCollections, name)
+		}
+		return "", fmt.Errorf("unknown collection: %s. Available: %v", collectionName, availableCollections)
+	}
+	return collectionPath, nil
+}
+
+// handleResult processes Newman execution result and returns appropriate error
+func handleResult(result *newman.Result, collectionName string, flags []string) error {
+	if result.Success {
+		if isVerboseMode(flags) && result.Output != "" {
+			fmt.Println(result.Output)
+		} else {
+			fmt.Printf("%s link: All tests passed!\n", collectionName)
+		}
+		return nil
+	}
+
+	fmt.Printf("%s link: Tests completed with exit code: %d\n", collectionName, result.ExitCode)
+	if result.Output != "" {
+		fmt.Println("Newman output:")
+		fmt.Println(result.Output)
+	}
+	return fmt.Errorf("tests failed with exit code %d", result.ExitCode)
+}
+
+// removeCsvFlags removes CSV iteration flags for setup phase
+func removeCsvFlags(flags []string) []string {
+	result := make([]string, 0, len(flags))
+	for i := 0; i < len(flags); i++ {
+		flag := flags[i]
+		if flag == "-d" || flag == "--iteration-data" {
+			// Skip this flag and its value (if exists and doesn't start with -)
+			if i+1 < len(flags) && !strings.HasPrefix(flags[i+1], "-") {
+				i++ // Skip the value too
+			}
+		} else {
+			result = append(result, flag)
+		}
+	}
+	return result
+}
+
+// printLinkStatus prints the status of the current link being executed
+func printLinkStatus(linkSpec LinkSpec, phase string, linkIndex, totalLinks int) {
+	prefix := fmt.Sprintf("Running %s link %d/%d", phase, linkIndex, totalLinks)
+	if len(linkSpec.Items) > 0 {
+		fmt.Printf("%s: %s.%s\n", prefix, linkSpec.Collection, strings.Join(linkSpec.Items, ","))
+	} else {
+		fmt.Printf("%s: %s\n", prefix, linkSpec.Collection)
+	}
+}
+
 // buildRunCommandLong creates the long description with available collections
 func buildRunCommandLong() string {
 	config := discoverAllFiles()
@@ -94,30 +301,40 @@ func buildRunCommandLong() string {
 		dataNames = append(dataNames, name)
 	}
 
-	return fmt.Sprintf(`Execute API tests using Newman as a proxy. Specify collection names and any Newman flags.
+	return fmt.Sprintf(`Execute API tests using Newman with setup and test phases.
 
 Available collections: %v
 Available environments: %v
 Available data files: %v
 
 Examples:
-  plaintest run smoke
-  plaintest run get_auth api_tests -d data/example.csv
-  plaintest run get_auth api_tests -d data/example.csv --once get_auth
-  plaintest run api_tests --verbose --reports
-  plaintest run smoke -r 2-5 --debug
+  plaintest run --test smoke
+  plaintest run --setup auth --test api_tests -d data/example.csv
+  plaintest run --setup "auth.Login" --test "api tests.User Tests" -d data.csv
+  plaintest run --test "api tests.Create User,Update User,Delete User"
+  plaintest run --setup db.Init --setup auth.Login --test api_tests --reports
 
+Setup phase runs once, test phase iterates with CSV data.
 All Newman flags are supported. PlainTest-specific flags are listed below.`, availableNames, envNames, dataNames)
 }
 
 var runCmd = &cobra.Command{
-	Use:   "run [collections...] [newman-flags...]",
+	Use:   "run",
 	Short: "Execute API tests with Newman",
 	Long:  buildRunCommandLong(),
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear any previously tracked reports
 		generatedReports = nil
+
+		// Validate that at least setup or test is specified
+		if len(setupLinks) == 0 && len(testLinks) == 0 {
+			fmt.Println("Error: Must specify at least one --setup or --test link")
+			fmt.Println("Examples:")
+			fmt.Println("  plaintest run --test smoke")
+			fmt.Println("  plaintest run --setup auth --test api_tests")
+			os.Exit(1)
+		}
 
 		service := newman.NewService()
 		service.SetDebug(debugNewman)
@@ -130,19 +347,18 @@ var runCmd = &cobra.Command{
 		// Discover available collections, environments, and data files
 		config := discoverAllFiles()
 
-		// Parse collections and Newman flags from raw args (skip "plaintest run")
-		rawArgs := os.Args[2:] // Skip "plaintest run"
-		collections, newmanFlags, err := parseArguments(rawArgs, config)
+		// Parse setup and test phases
+		phases, err := parsePhases(setupLinks, testLinks)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			fmt.Printf("Error parsing links: %v\n", err)
 			os.Exit(1)
 		}
-		if len(collections) == 0 {
-			availableCollections := make([]string, 0, len(config.Collections))
-			for name := range config.Collections {
-				availableCollections = append(availableCollections, name)
-			}
-			fmt.Printf("Error: No collections specified. Available: %v\n", availableCollections)
+
+		// Get Newman flags from raw args (skip "plaintest run")
+		rawArgs := os.Args[2:] // Skip "plaintest run"
+		_, newmanFlags, err := parseArguments(rawArgs, config)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -156,103 +372,45 @@ var runCmd = &cobra.Command{
 			}
 		}
 
-		// Run each collection in sequence with environment sharing
+		// Execute phases in order: setup first, then test
 		var tempEnvFile string
-		var exitCode int // Track exit code to show reports before exiting
+		var exitCode int
 		defer func() {
 			if tempEnvFile != "" {
 				cleanupTempFile(tempEnvFile)
 			}
 		}()
 
-		for i, collectionName := range collections {
-			collectionPath, exists := config.Collections[collectionName]
-			if !exists {
-				availableCollections := make([]string, 0, len(config.Collections))
-				for name := range config.Collections {
-					availableCollections = append(availableCollections, name)
+		var linkIndex int
+		for _, phase := range phases {
+			for _, linkSpec := range phase.Links {
+				linkIndex++
+				err := executeLinkSpec(linkSpec, phase.Phase, linkIndex, len(setupLinks)+len(testLinks),
+					&config, newmanFlags, service, &tempEnvFile)
+				if err != nil {
+					fmt.Printf("Error executing %s link '%s': %v\n", phase.Phase, linkSpec.Collection, err)
+					exitCode = 1
+					break
 				}
-				fmt.Printf("Unknown collection: %s. Available: %v\n", collectionName, availableCollections)
-				os.Exit(1)
 			}
-
-			currentFlags := determineCollectionFlags(collectionName, newmanFlags, collectionsToRunOnce)
-			printCollectionStatus(collectionName, currentFlags)
-
-			if rowSelection != "" {
-				currentFlags = applyRowSelection(currentFlags, rowSelection)
-			}
-
-			// For subsequent collections, use shared environment from previous collection
-			if i > 0 && tempEnvFile != "" {
-				currentFlags = replaceEnvironmentInFlags(currentFlags, tempEnvFile)
-			}
-
-			// Add report flags if requested
-			if generateReports {
-				currentFlags = addReportFlags(currentFlags, collectionName)
-			}
-
-			var result *newman.Result
-			var err error
-
-			// If this is not the last collection, export environment for next collection
-			if i < len(collections)-1 {
-				// Create temporary environment file for sharing
-				if tempEnvFile == "" {
-					tempEnvFile, err = createTempEnvironmentFile()
-					if err != nil {
-						fmt.Printf("Error creating temporary environment file: %v\n", err)
-						os.Exit(1)
-					}
-				}
-				result, err = service.RunWithEnvironmentExport(collectionPath, currentFlags, tempEnvFile)
-			} else {
-				// Last collection doesn't need to export environment
-				result, err = service.RunWithFlags(collectionPath, currentFlags)
-			}
-
-			if err != nil {
-				fmt.Printf("Test execution failed: %v\n", err)
-				if result != nil && result.Output != "" {
-					fmt.Println("Newman output:")
-					fmt.Println(result.Output)
-				}
-				exitCode = 1
-				break // Exit loop but continue to show reports
-			}
-
-			if result.Success {
-				if isVerboseMode(currentFlags) && result.Output != "" {
-					fmt.Println(result.Output)
-				} else {
-					fmt.Printf("%s collection: All tests passed!\n", collectionName)
-				}
-			} else {
-				fmt.Printf("%s collection: Tests completed with exit code: %d\n", collectionName, result.ExitCode)
-				if result.Output != "" {
-					fmt.Println("Newman output:")
-					fmt.Println(result.Output)
-				}
-				exitCode = 1
-				break // Exit loop but continue to show reports
+			if exitCode != 0 {
+				break
 			}
 		}
 
-		// Show summary of generated reports if capture was used
+		// Show summary of generated reports
 		if len(generatedReports) > 0 {
 			fmt.Println()
 			fmt.Println("Generated Reports:")
 			for _, report := range generatedReports {
 				if strings.HasSuffix(report, ".json") {
 					fmt.Printf("   JSON: %s\n", report)
-				} else if strings.HasSuffix(report, ".html") {
+				} else {
 					fmt.Printf("   HTML: %s\n", report)
 				}
 			}
 		}
 
-		// Exit with error code if any tests failed
 		if exitCode != 0 {
 			os.Exit(exitCode)
 		}
@@ -485,59 +643,72 @@ func parseArguments(args []string, config DiscoveryConfig) (collections []string
 		arg := args[argIndex]
 
 		// Skip PlainTest-specific flags
-		if arg == rowsShortFlag || arg == rowsLongFlag {
-			argIndex += 2 // Skip flag and its value
-			continue
-		}
-		if arg == "--once" {
-			argIndex += 2
-			continue
-		}
-		if arg == debugFlag {
-			argIndex++
-			continue
-		}
-		if arg == reportsFlag {
-			argIndex++
+		if skip := skipPlainTestFlag(arg, &argIndex); skip {
 			continue
 		}
 
 		if _, exists := config.Collections[arg]; exists {
 			collections = append(collections, arg)
 			argIndex++
+		} else if strings.HasPrefix(arg, "-") {
+			// Process Newman flag
+			argIndex = processNewmanFlag(arg, args, argIndex, flagMaps, &newmanFlags)
 		} else {
-			// Check if this is a Newman flag (starts with -)
-			if strings.HasPrefix(arg, "-") {
-				newmanFlags = append(newmanFlags, arg)
-				argIndex++
-
-				// Check if this flag needs path resolution
-				if lookupMap, needsResolution := flagMaps[arg]; needsResolution {
-					if argIndex < len(args) && !strings.HasPrefix(args[argIndex], "-") {
-						value := args[argIndex]
-						resolvedPath := resolveFilePathFromName(value, lookupMap)
-						newmanFlags = append(newmanFlags, resolvedPath)
-						argIndex++
-					}
-				} else {
-					// Check if this flag expects a value (next arg doesn't start with -)
-					if argIndex < len(args) && !strings.HasPrefix(args[argIndex], "-") {
-						// Add the flag value
-						newmanFlags = append(newmanFlags, args[argIndex])
-						argIndex++
-					}
-				}
-			} else {
-				// Non-flag argument that's not a known collection - treat as invalid collection
-				availableNames := make([]string, 0, len(config.Collections))
-				for name := range config.Collections {
-					availableNames = append(availableNames, name)
-				}
-				return collections, newmanFlags, fmt.Errorf("unknown collection: %s. Available: %v", arg, availableNames)
-			}
+			// Non-flag argument that's not a known collection - treat as invalid collection
+			return collections, newmanFlags, fmt.Errorf("unknown collection: %s. Available: %v", arg, getAvailableCollections(config))
 		}
 	}
 	return collections, newmanFlags, nil
+}
+
+// skipPlainTestFlag checks if argument is a PlainTest-specific flag and advances index
+func skipPlainTestFlag(arg string, argIndex *int) bool {
+	if arg == rowsShortFlag || arg == rowsLongFlag {
+		*argIndex += 2 // Skip flag and its value
+		return true
+	}
+	if arg == "--setup" || arg == "--test" {
+		*argIndex += 2 // Skip flag and its value
+		return true
+	}
+	if arg == debugFlag || arg == reportsFlag {
+		*argIndex++
+		return true
+	}
+	return false
+}
+
+// processNewmanFlag processes a Newman flag and returns new index
+func processNewmanFlag(arg string, args []string, argIndex int, flagMaps map[string]map[string]string, newmanFlags *[]string) int {
+	*newmanFlags = append(*newmanFlags, arg)
+	argIndex++
+
+	// Check if this flag needs path resolution
+	if lookupMap, needsResolution := flagMaps[arg]; needsResolution {
+		if argIndex < len(args) && !strings.HasPrefix(args[argIndex], "-") {
+			value := args[argIndex]
+			resolvedPath := resolveFilePathFromName(value, lookupMap)
+			*newmanFlags = append(*newmanFlags, resolvedPath)
+			argIndex++
+		}
+	} else {
+		// Check if this flag expects a value (next arg doesn't start with -)
+		if argIndex < len(args) && !strings.HasPrefix(args[argIndex], "-") {
+			// Add the flag value
+			*newmanFlags = append(*newmanFlags, args[argIndex])
+			argIndex++
+		}
+	}
+	return argIndex
+}
+
+// getAvailableCollections returns a slice of available collection names
+func getAvailableCollections(config DiscoveryConfig) []string {
+	availableNames := make([]string, 0, len(config.Collections))
+	for name := range config.Collections {
+		availableNames = append(availableNames, name)
+	}
+	return availableNames
 }
 
 // extractCSVFromFlags finds CSV file specified in Newman flags
@@ -577,23 +748,6 @@ func hasEnvironmentFlag(flags []string) bool {
 	return false
 }
 
-func determineCollectionFlags(collectionName string, baseFlags []string, onceOnlyCollections []string) []string {
-	if isRunOnceCollection(collectionName, onceOnlyCollections) {
-		return removeCSVFlags(baseFlags)
-	}
-	return baseFlags
-}
-
-func printCollectionStatus(collectionName string, flags []string) {
-	if csvFile := extractCSVFromFlags(flags); csvFile != "" {
-		fmt.Printf("Running %s collection with CSV data iterations...\n", collectionName)
-	} else if containsCollection(collectionsToRunOnce, collectionName) {
-		fmt.Printf("Running %s collection once (no CSV iteration)...\n", collectionName)
-	} else {
-		fmt.Printf("Running %s collection...\n", collectionName)
-	}
-}
-
 func applyRowSelection(flags []string, rowSelection string) []string {
 	csvFile := extractCSVFromFlags(flags)
 	if csvFile == "" {
@@ -612,38 +766,6 @@ func applyRowSelection(flags []string, rowSelection string) []string {
 	return replaceCSVInFlags(flags, tempCSVFile)
 }
 
-func isRunOnceCollection(collectionName string, onceOnlyCollections []string) bool {
-	for _, name := range onceOnlyCollections {
-		if name == collectionName {
-			return true
-		}
-	}
-	return false
-}
-
-func containsCollection(collections []string, target string) bool {
-	for _, name := range collections {
-		if name == target {
-			return true
-		}
-	}
-	return false
-}
-
-func removeCSVFlags(flags []string) []string {
-	result := []string{}
-	for i := 0; i < len(flags); i++ {
-		if flags[i] == "-d" || flags[i] == "--iteration-data" {
-			if i+1 < len(flags) && !strings.HasPrefix(flags[i+1], "-") {
-				i++
-			}
-		} else {
-			result = append(result, flags[i])
-		}
-	}
-	return result
-}
-
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(initCmd)
@@ -660,10 +782,11 @@ func init() {
 	listCmd.AddCommand(listScriptsCmd)
 
 	// Only PlainTest-specific flags
+	runCmd.Flags().StringSliceVar(&setupLinks, "setup", []string{}, "Setup links to run once (collection or collection.items)")
+	runCmd.Flags().StringSliceVar(&testLinks, "test", []string{}, "Test links to run with CSV iteration (collection or collection.items)")
 	runCmd.Flags().StringVarP(&rowSelection, "rows", "r", "", "CSV row selection (2 | 2-5 | 1,3,5)")
 	runCmd.Flags().BoolVar(&debugNewman, "debug", false, "Print the Newman command before running")
 	runCmd.Flags().BoolVar(&generateReports, "reports", false, "Generate timestamped HTML and JSON report files")
-	runCmd.Flags().StringSliceVar(&collectionsToRunOnce, "once", []string{}, "Collections to run once without CSV iteration (comma-separated or repeat flag)")
 
 	// Allow unknown flags to be passed to Newman
 	runCmd.FParseErrWhitelist.UnknownFlags = true

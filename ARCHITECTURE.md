@@ -2,13 +2,13 @@
 
 ## Overview
 
-PlainTest is a Newman proxy that adds collection chaining, CSV row selection, and request/response capture while maintaining Newman compatibility.
+PlainTest is a Newman proxy that adds collection chaining, CSV row selection, and request/response capture.
 
 ## Design Philosophy
 
-**Newman Proxy Approach**: Rather than wrapping Newman's functionality, PlainTest acts as a transparent proxy that:
+**Newman Proxy Approach**: PlainTest acts as a transparent proxy that:
 1. **Passes through Newman flags** - Users get Newman functionality
-2. **Adds three specific features** - Collection chaining, CSV row selection, and request/response capture
+2. **Adds three features** - Collection chaining, CSV row selection, and request/response capture
 3. **Auto-discovers collections** - No hard-coded collection mappings
 
 ## Project Structure
@@ -39,17 +39,17 @@ plaintest/
 
 ### 1. Newman Proxy (`cmd/plaintest/main.go`)
 
-**Role**: Intelligent command-line proxy between user and Newman
+**Role**: Command-line proxy between user and Newman
 
 **Key Functions**:
-- `discoverCollections()` - Auto-discover `*.postman_collection.json` files
+- `discoverAllFiles()` - Discover `*.postman_collection.json` files
 - `parseArguments()` - Separate collection names from Newman flags
-- `buildRunCommandLong()` - Dynamic help text with available collections
+- `buildRunCommandLong()` - Dynamic help text with collections
 
 **Proxy Logic**:
 ```go
 // 1. Discover collections from filesystem
-collectionMap := discoverCollections()
+collectionMap := discoverAllFiles()
 
 // 2. Parse user input: separate collections from Newman flags
 collections, newmanFlags := parseArguments(rawArgs, collectionMap)
@@ -62,7 +62,7 @@ for _, collection := range collections {
 
 ### 2. Collection Discovery
 
-**Auto-Discovery Algorithm**:
+**Discovery Algorithm**:
 1. Scan `collections/*.postman_collection.json` files
 2. Extract collection name from filename (remove `.postman_collection.json`)
 3. Map collection names from filenames
@@ -140,9 +140,9 @@ User: ./plaintest run smoke --verbose
 4. Execute: newman run collections/smoke.postman_collection.json --verbose -e environments/dummyjson.postman_environment.json
 ```
 
-### Collection Chaining with Environment Sharing + CSV Row Selection
+### Setup-Test Execution with Environment Sharing + CSV Row Selection
 ```
-User: ./plaintest run get_auth api_tests -d data/example.csv -r 2-5 --bail
+User: ./plaintest run --setup get_auth --test api_tests -d data/example.csv -r 2-5 --bail
   ↓
 1. Discover collections → {get_auth: "...", api_tests: "..."}
 2. Parse arguments → collections=[get_auth, api_tests], flags=[-d, data/example.csv, --bail]
@@ -171,16 +171,16 @@ Environment Evolution:
 **Rationale**:
 - Users get Newman functionality
 - No need to reimplement Newman flags
-- Automatic compatibility with new Newman features
+- Compatibility with new Newman features
 - Focused codebase for PlainTest value-add
 
-### 2. Auto-Discovery vs Hard-Coded
-**Decision**: Auto-discovery with backward compatibility
+### 2. Discovery vs Hard-Coded
+**Decision**: Discovery with backward compatibility
 **Rationale**:
 - Users can add collections without code changes
 - Follows Postman conventions
 - Maintains existing user workflows
-- Self-documenting help text
+- Dynamic help text
 
 ### 3. Flag Parsing Strategy
 **Decision**: Raw argument parsing with collection/flag separation
@@ -196,8 +196,8 @@ Environment Evolution:
 ./plaintest run api_tests --verbose --timeout 30000 --bail --reporters cli,htmlextra --reporter-htmlextra-export reports/
 ```
 
-**PlainTest Additions**: Three features layered on top:
-1. **Collection chaining with environment sharing**: `./plaintest run get_auth api_tests`
+**PlainTest Additions**: Three features:
+1. **Setup-test execution with environment sharing**: `./plaintest run --setup get_auth --test api_tests`
 2. **CSV row selection**: `-r 2-5`
 3. **Report generation**: `--reports` (generates timestamped JSON and HTML files)
 
@@ -205,11 +205,11 @@ Environment Evolution:
 
 **Adding New Features**:
 1. **PlainTest-specific**: Add to `parseArguments()` flag filtering
-2. **Newman pass-through**: Requires no changes - automatic compatibility
+2. **Newman pass-through**: Requires no changes - compatibility
 
 **Collection Management**:
 - Add `.postman_collection.json` files to `collections/` directory
-- Auto-discovered and immediately available
+- Discovered and available
 - No code changes required
 
 ## Error Handling
@@ -224,4 +224,4 @@ Environment Evolution:
 - Collection file issues → Show Newman's native error messages
 - Flag conflicts → Let Newman handle validation
 
-This architecture provides a separation between PlainTest's value-add features and Newman's core functionality, while maintaining compatibility and extensibility.
+This architecture separates PlainTest's features from Newman's core functionality.

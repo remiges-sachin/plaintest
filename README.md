@@ -1,108 +1,88 @@
 # PlainTest
 
-A CLI framework for API testing that acts as a Newman proxy with CSV-driven test data, following PlainTest methodology.
+PlainTest separates setup from tests.
 
-## Features
+Setup runs once to prepare the environment. Tests iterate over CSV data to validate behavior. This prevents authentication collections from running multiple times and makes test execution predictable.
 
-### Implemented
-- **Newman Proxy**: Pass-through any Newman flags while adding PlainTest functionality
-- **Auto-Discovery for All Resources**: Collections, environments, and data files can be referenced by name instead of full paths
-- **Single Environment Auto-Detection**: Automatically uses environment if only one exists in the project
-- **Collection Chaining with Environment Sharing**: Run multiple collections in sequence with automatic environment variable sharing: `plaintest run get_auth api_tests`
-- **CSV Row Selection**: Run specific test subsets with `-r 2`, `-r 2-5`, or `-r 1,3,5` patterns
-- **Project Initialization**: `plaintest init` creates working templates with DummyJSON API examples
-- **CSV-Driven Testing**: Data-driven tests using PlainTest three-column structure (META → INPUT → EXPECTED)
-- **Newman Compatibility**: Use any Newman flag: `--verbose`, `--timeout`, `--bail`, etc.
-- **Authentication Templates**: Working examples with DummyJSON login flow
-- **Script Push/Pull**: `plaintest scripts pull` and `plaintest scripts push` edit Postman scripts in standalone `.js` files
-- **Report Generation**: `--reports` generates timestamped JSON and HTML report files with request/response data
+## Two Key Points
 
-### To Be Implemented
-- **Report Summary**: Test execution summaries and failure analysis
+1. Use `--setup` for authentication and preparation
+2. Use `--test` for actual validation that iterates with data
 
-## Quick Start
+## Example
 
 ```bash
-# Install dependencies
+# Auth runs once, API tests run for each CSV row
+./plaintest run --setup get_auth --test api_tests -d users.csv
+```
+
+This command:
+- Runs `get_auth` collection once to authenticate
+- Runs `api_tests` collection for each row in `users.csv`
+- Shares authentication token between phases automatically
+
+## How It Works
+
+PlainTest wraps Newman and adds CSV iteration control.
+
+Newman runs Postman collections. PlainTest decides which collections iterate with CSV data and which run once.
+
+## Install
+
+```bash
 npm install -g newman newman-reporter-htmlextra
-
-# Build PlainTest
-make build
-# or
 go build -o plaintest ./cmd/plaintest
+```
 
-# Initialize new project with working templates
+## Use
+
+```bash
+# Create project
 ./plaintest init
 
-# List project resources
-./plaintest list collections
-./plaintest list data
-./plaintest list environments
-./plaintest list scripts
+# Basic separation
+./plaintest run --setup get_auth --test api_tests
 
-# Pull scripts from collections for editing
-./plaintest scripts pull my-api
+# With CSV data
+./plaintest run --setup get_auth --test api_tests -d users.csv
 
-# Push edited scripts back to collection
-./plaintest scripts push my-api
+# Select specific rows
+./plaintest run --test api_tests -d users.csv -r 1-3
 
-# Run smoke tests (auto-discovered)
-./plaintest run smoke
-
-# See all available collections
-./plaintest run --help
-
-# Run authentication then tests (collection chaining with environment sharing)
-./plaintest run get_auth api_tests
-
-# Run auth collection once, then test collections with CSV iterations (--once flag)
-./plaintest run get_auth api_tests -d data/example.csv --once get_auth
-
-# Run CSV-driven tests with row selection (PlainTest-specific)
-./plaintest run api_tests -d data/example.csv -r 1-3
-
-# Use any Newman flags (proxy mode)
-./plaintest run smoke --verbose --timeout 10000
-
-# Capture request/response data
-./plaintest run api_tests --reports
-
-# Mix PlainTest and Newman features (names supported: -e production -d example)
-./plaintest run get_auth api_tests -d data/example.csv -r 2 --bail --verbose
+# Use Newman flags
+./plaintest run --test smoke --verbose --bail
 ```
 
 ## Documentation
 
 - **[USER_DOCS.md](USER_DOCS.md)** - Command reference and usage guide
-- **[SCRIPT_SYNC.md](SCRIPT_SYNC.md)** - Details for the script sync workflow
-- **Reference implementation**: See `reference/cvl-kra/PlainTest-README.md` for a full CVL PAN validation example
+- **[SCRIPT_SYNC.md](SCRIPT_SYNC.md)** - Script sync workflow details
 - **Command reference**: Run `./plaintest --help` for command options
 
-## PlainTest Methodology
+## CSV Data Format
 
-PlainTest follows a structured approach to API testing:
+PlainTest uses three-column CSV structure:
 
-### CSV Structure
-Three-column pattern for test data:
 - **META columns** (`test_*`): Test identification and metadata
 - **INPUT columns** (`input_*`): Request parameters and data
 - **EXPECTED columns** (`expected_*`): Expected response values
 
-### Test Types
-- **Smoke Tests**: Maximum 5 critical path tests, 30-second timeout
+## Test Types
+
+- **Smoke Tests**: Maximum 5 tests, 30-second timeout
 - **Full Tests**: Complete test suite with CSV data iteration
-- **Authentication Flow**: Two-phase execution (auth → tests)
+- **Setup-Test Flow**: Setup runs once, test iterates with CSV data
 
 ## Architecture
 
 ```
-cmd/plaintest/          # CLI entry point and command definitions
+cmd/plaintest/          # CLI entry point
 internal/
-├── core/              # Version and core utilities
+├── core/              # Version and utilities
 ├── newman/            # Newman service wrapper
-├── csv/               # CSV processing and row selection
-├── scriptsync/        # Raw↔Postman script↔build sync utilities
-└── templates/         # Project template generation
+├── csv/               # CSV processing
+├── scriptsync/        # Script sync utilities
+└── templates/         # Project templates
 ```
 
 ## Development
@@ -111,14 +91,8 @@ internal/
 # Run tests
 go test ./...
 
-# Run with coverage
-make coverage-check
-
 # Build binary
 go build -o plaintest ./cmd/plaintest
-
-# Install pre-commit hooks
-make pre-commit-install
 ```
 
 ## Version
