@@ -55,9 +55,39 @@ go build -o plaintest ./cmd/plaintest
 
 ## Documentation
 
-- **[USER_DOCS.md](USER_DOCS.md)** - Command reference and usage guide
-- **[SCRIPT_SYNC.md](SCRIPT_SYNC.md)** - Script sync workflow details
-- **Command reference**: Run `./plaintest --help` for command options
+### What do you want to do?
+
+**Start testing quickly**
+[QUICK_START.md](QUICK_START.md) has step-by-step instructions for beginners.
+
+**Understand the design**
+[SETUP_TEST_DESIGN.md](SETUP_TEST_DESIGN.md) explains why setup and test phases are separate.
+
+**Learn the architecture**
+[ARCHITECTURE.md](ARCHITECTURE.md) shows how PlainTest proxies Newman.
+
+**Sync Postman scripts**
+[SCRIPT_SYNC.md](SCRIPT_SYNC.md) covers the pull-edit-push workflow.
+
+### Documents by Purpose
+
+| Document | Answers |
+|----------|---------|
+| [QUICK_START.md](QUICK_START.md) | How do I run my first tests? Step-by-step guide. |
+| [USER_DOCS.md](USER_DOCS.md) | How do I run tests? What commands exist? |
+| [SETUP_TEST_DESIGN.md](SETUP_TEST_DESIGN.md) | Why separate setup from tests? |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How does PlainTest work internally? |
+| [SCRIPT_SYNC.md](SCRIPT_SYNC.md) | How do I edit Postman scripts? |
+
+### For Different Users
+
+**Testers**: Start with [QUICK_START.md](QUICK_START.md). Read USER_DOCS for all commands.
+
+**Developers**: Read ARCHITECTURE for internals. Check SCRIPT_SYNC for editing collections.
+
+**Architects**: Read SETUP_TEST_DESIGN for design rationale. Review ARCHITECTURE for implementation.
+
+**Command reference**: Run `./plaintest --help` for command options.
 
 ## CSV Data Format
 
