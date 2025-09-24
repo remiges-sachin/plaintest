@@ -32,6 +32,7 @@ You could apply these layers manually with Newman. The CLI just makes it automat
 ```
 plaintest-project/
 ├── collections/     # Test logic
+├── scripts/        # Extracted JavaScript files
 ├── data/           # Test cases
 ├── environments/   # Configurations
 └── reports/        # Results
@@ -39,7 +40,7 @@ plaintest-project/
 
 Collections contain your Postman exports. Data holds CSV files with test cases. Environments store URLs and settings. Reports capture what happened.
 
-This structure separates test logic from test data from test configuration.
+This structure separates test logic from test scripts from test data from test configuration.
 
 ## Practical Problems PlainTest Solves
 
@@ -216,6 +217,33 @@ collections/
 ```
 
 Choose based on how you want to organize and run your tests.
+
+## Script Management
+
+Postman stores scripts as strings in JSON files. You can't edit strings in your IDE. You can't see diffs properly. You can't run linters.
+
+PlainTest extracts scripts to JavaScript files.
+
+Why? Scripts are code. Code needs proper tools.
+
+Structure after extraction:
+```
+scripts/
+├── user_api/
+│   ├── _collection__test.js      # Collection-level tests
+│   └── create_user__test.js      # Request-specific tests
+```
+
+Benefits:
+- Edit in VS Code with syntax highlighting
+- Git shows real code changes
+- Use ESLint and prettier
+
+Extract once: `plaintest scripts pull user_api`
+Edit as JavaScript.
+Push back: `plaintest scripts push user_api`
+
+The principle: Separate test structure (collection) from test logic (scripts). Each lives in its natural format.
 
 ## Running Tests
 
