@@ -246,10 +246,27 @@ pre-commit-run: ## Run pre-commit on all files
 	@echo "${GREEN}Running pre-commit on all files...${RESET}"
 	@pre-commit run --all-files
 
+# GoReleaser
+.PHONY: release-snapshot
+release-snapshot: ## Build snapshot release for testing
+	@echo "${GREEN}Building snapshot release...${RESET}"
+	@goreleaser release --snapshot --clean
+
+.PHONY: release-build
+release-build: ## Build for current platform only
+	@echo "${GREEN}Building for current platform...${RESET}"
+	@goreleaser build --single-target --snapshot --clean
+
+.PHONY: release
+release: ## Create full release (requires git tag)
+	@echo "${GREEN}Creating release...${RESET}"
+	@goreleaser release --clean
+
 # Utilities
 .PHONY: clean
 clean: ## Remove build artifacts and coverage files
 	@echo "${GREEN}Cleaning...${RESET}"
-	@rm -f coverage.out coverage.html
+	@rm -f coverage.out coverage.html plaintest
+	@rm -rf dist/
 	@go clean -cache -testcache -modcache
 	@echo "${GREEN}Clean complete${RESET}"
