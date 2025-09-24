@@ -182,6 +182,41 @@ This gives you a service account that can authenticate and carry the right permi
 
 One collection tests one business capability. Folders organize different scenarios of that capability.
 
+## Collection Organization Strategies
+
+**Use one collection with folders when:**
+- Same API and base URL
+- Same authentication method
+- Want single file to manage
+
+Example structure:
+```
+user_api/
+├── Auth/
+│   └── Login
+├── Users/
+│   ├── Create
+│   └── Update
+└── Admin/
+    └── Delete
+```
+
+**Use separate collections when:**
+- Different APIs or services
+- Different run schedules (smoke vs regression)
+- Different team ownership
+- Need clean separation between setup and tests
+
+Example structure:
+```
+collections/
+├── smoke.json         # Quick health checks
+├── auth.json          # Just authentication
+└── user_tests.json    # User operations
+```
+
+Choose based on how you want to organize and run your tests.
+
 ## Running Tests
 
 Three-phase execution pattern:
