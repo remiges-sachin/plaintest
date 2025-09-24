@@ -2,7 +2,7 @@
 
 ## Overview
 
-PlainTest is a Newman proxy that adds CSV-driven testing and collection chaining while giving you access to Newman's features.
+PlainTest is a Newman proxy that adds CSV-driven testing and collection chaining.
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ go build -o plaintest ./cmd/plaintest
 
 ### `plaintest version`
 
-Shows the current version of PlainTest.
+Shows the current version.
 
 ```bash
 ./plaintest version
@@ -32,7 +32,7 @@ Shows the current version of PlainTest.
 
 ### `plaintest init`
 
-Creates PlainTest project structure with working templates:
+Creates project structure with templates:
 
 ```bash
 ./plaintest init
@@ -46,11 +46,11 @@ Creates:
 - `environments/` - Environment configuration files
 - `reports/` - Test execution reports directory
 
-The templates include working examples using DummyJSON API that you can run immediately.
+Templates include examples using DummyJSON API.
 
 ### `plaintest list [resource-type]`
 
-Lists available project resources for discovery and reference:
+Lists available project resources:
 
 ```bash
 # List all available collections
@@ -86,11 +86,11 @@ Available script directories:
   smoke-tests (1 script files)
 ```
 
-This helps you discover what resources are available in your project without needing to check directories manually.
+This shows what resources are available in your project.
 
 ### `plaintest scripts pull [collection-name]`
 
-Extracts scripts from a Postman collection to editable JavaScript files:
+Extracts scripts from a Postman collection to JavaScript files:
 
 ```bash
 ./plaintest scripts pull my-api
@@ -120,21 +120,21 @@ Workflow:
 - Updates `collections/my-api.postman_collection.json` with script content
 - Scripts are the source of truth after extraction
 
-Run extract once, then edit scripts and build repeatedly.
+Extract once, then edit scripts and build.
 
 ### `plaintest run [collections...] [newman-flags...]`
 
-Execute API tests using Newman as a proxy. PlainTest adds two features on top of Newman:
+Execute API tests using Newman as a proxy. PlainTest adds two features:
 
-1. **Collection chaining with environment sharing** - Run multiple collections in sequence with automatic environment variable sharing
+1. **Collection chaining with environment sharing** - Run multiple collections in sequence with environment variable sharing
 2. **CSV row selection** - Filter CSV data to specific rows
 
 #### Auto-Discovery System
 
-PlainTest automatically discovers resources in your project directories and lets you reference them by name instead of full paths:
+PlainTest discovers resources in your project directories and lets you reference them by name:
 
 ```bash
-# See all available collections, environments, and data files
+# See collections, environments, and data files
 ./plaintest run --help
 ```
 
@@ -153,7 +153,7 @@ PlainTest automatically discovers resources in your project directories and lets
 - `add_ucc` → `data/add_ucc.csv`
 - `test_cases` → `data/test_cases.csv`
 
-**Automatic Defaults**: If only one environment file exists, PlainTest automatically uses it without requiring the `-e` flag.
+**Defaults**: If only one environment file exists, PlainTest uses it without requiring the `-e` flag.
 
 #### PlainTest-Specific Flags
 
@@ -173,11 +173,15 @@ PlainTest automatically discovers resources in your project directories and lets
   - Shows the exact Newman command with all flags for troubleshooting
   - Useful for understanding collection chaining and flag processing
 
-- `--once collection1,collection2` - Collections to run once without CSV iteration (PlainTest feature)
-  - Prevents specified collections from iterating over CSV data
-  - For authentication/setup collections that should run only once
-  - Can use comma-separated list or repeat the flag: `--once auth --once setup`
-  - Example: `plaintest run get_auth api_tests -d data.csv --once get_auth`
+- `--setup "collection1.item1,item2"` - Setup links that run once without CSV iteration (PlainTest feature)
+  - Setup phase runs before tests, regardless of command order
+  - Use dot notation for specific requests: `"collection"."item1,item2"`
+  - Example: `plaintest run --setup "get_auth.Login" --test "api_tests" -d data.csv`
+
+- `--test "collection1.item1,item2"` - Test links that iterate with CSV data (PlainTest feature)
+  - Test phase runs after setup, iterating over CSV rows
+  - Use dot notation for specific requests: `"collection"."item1,item2"`
+  - Example: `plaintest run --setup get_auth --test "api_tests.Create User,Update User" -d data.csv`
 
 #### Newman Flags (Passed Through)
 
@@ -192,29 +196,32 @@ Other flags are passed directly to Newman:
 - `--export-*` - Export options
 - And many more - see `newman run --help`
 
-#### Collection Chaining with CSV Data
+#### Setup-Test Phase Execution
 
-When using CSV data (`-d` flag) with multiple collections, by default all collections will iterate over each row in the CSV. This is not intended for authentication or setup collections.
+PlainTest separates setup from tests using `--setup` and `--test` flags. Setup runs once, tests iterate with CSV data.
 
-**Problem**: Without `--once` flag
+**Setup Phase**: Runs once regardless of CSV data
 ```bash
-# Both collections run for EACH row in CSV
-plaintest run get_auth api_tests -d data.csv
-# get_auth runs 5 times if CSV has 5 rows (unintended behavior)
-# api_tests runs 5 times (intended behavior)
+# Setup runs once, even with CSV data
+plaintest run --setup get_auth --test api_tests -d data.csv
 ```
 
-**Solution**: Use `--once` flag for setup collections
+**Test Phase**: Iterates with CSV data when present
 ```bash
-# get_auth runs ONCE, api_tests runs for each CSV row
-plaintest run get_auth api_tests -d data.csv --once get_auth
+# Tests iterate over each CSV row
+plaintest run --test api_tests -d data.csv
 ```
 
-**Multiple setup collections**:
+**Combined Setup-Test**:
 ```bash
-# Both setup collections run once, tests iterate
-plaintest run db_setup get_auth api_tests -d data.csv --once db_setup,get_auth
-# Or: --once db_setup --once get_auth
+# Multiple setup links, multiple test links
+plaintest run --setup db_setup --setup get_auth --test api_tests --test integration_tests -d data.csv
+```
+
+**Dot Notation for Granular Control**:
+```bash
+# Run specific requests from collections
+plaintest run --setup "get_auth.Login" --test "api_tests.Create User,Update User" -d data.csv
 ```
 
 #### Examples
@@ -225,10 +232,10 @@ plaintest run db_setup get_auth api_tests -d data.csv --once db_setup,get_auth
 ./plaintest run api_tests
 ```
 
-**Collection chaining with environment sharing (PlainTest feature):**
+**Setup-test execution with environment sharing (PlainTest feature):**
 ```bash
-./plaintest run get_auth api_tests
-./plaintest run smoke api_tests get_auth
+./plaintest run --setup get_auth --test api_tests
+./plaintest run --setup "get_auth.Login" --test "api_tests.Create User,Update User"
 ```
 
 Collection chaining automatically shares environment variables between collections using environment merging:
@@ -240,9 +247,9 @@ Collection chaining automatically shares environment variables between collectio
 
 **Example flow:**
 ```bash
-./plaintest run get_auth api_tests -e production
-# get_auth:  Uses production.json + adds authToken
-# api_tests: Uses production.json + authToken (merged environment)
+./plaintest run --setup get_auth --test api_tests -e production
+# Setup phase:  Uses production.json + adds authToken
+# Test phase: Uses production.json + authToken (merged environment)
 ```
 
 This enables authentication workflows where login tokens from the first collection automatically flow to subsequent API test collections.
@@ -272,7 +279,7 @@ This enables authentication workflows where login tokens from the first collecti
 
 **Complex combinations (using name-based syntax):**
 ```bash
-./plaintest run get_auth api_tests -e production -d example -r 2-5 --verbose --bail --timeout 10000
+./plaintest run --setup get_auth --test api_tests -e production -d example -r 2-5 --verbose --bail --timeout 10000
 ```
 
 **Capture requests and responses:**
@@ -283,8 +290,8 @@ This enables authentication workflows where login tokens from the first collecti
 # Capture with CSV data
 ./plaintest run api_tests -d example --reports
 
-# Capture with collection chaining
-./plaintest run get_auth api_tests --reports
+# Capture with setup-test execution
+./plaintest run --setup get_auth --test api_tests --reports
 ```
 
 **Export reports:**
@@ -404,9 +411,9 @@ Use any Newman feature:
 ```
 
 ### PlainTest Value-Add
-Get collection chaining with environment sharing and CSV row selection:
+Get setup-test execution with environment sharing and CSV row selection:
 ```bash
-./plaintest run get_auth api_tests -d data/example.csv -r 1-3
+./plaintest run --setup get_auth --test api_tests -d data/example.csv -r 1-3
 ```
 
 Environment variables (including authentication tokens) from the first collection are automatically shared with subsequent collections.
@@ -486,12 +493,12 @@ HTML files can be opened in a browser for inspection.
 
 ### Development Testing
 ```bash
-./plaintest run get_auth api_tests -d data/dev_data.csv --verbose
+./plaintest run --setup get_auth --test api_tests -d data/dev_data.csv --verbose
 ```
 
 ### CI/CD Pipeline
 ```bash
-./plaintest run smoke api_tests --bail --timeout 30000 --reporters cli,json
+./plaintest run --test smoke --test api_tests --bail --timeout 30000 --reporters cli,json
 ```
 
 ### Manual Testing
