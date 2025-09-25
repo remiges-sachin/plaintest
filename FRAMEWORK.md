@@ -393,6 +393,30 @@ plaintest run auth user_registration_csv -e ci -d user_data.csv
 
 Choose based on whether you need consistency or uniqueness.
 
+## Response Time Validation
+
+PlainTest validates response times, not system performance.
+
+PlainTest runs tests sequentially through Newman. It cannot simulate concurrent users or measure system load. For load testing, use k6, JMeter, or Locust.
+
+What PlainTest can do:
+
+**Assert response times** in test scripts:
+
+```javascript
+pm.test("Response time under 500ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(500);
+});
+```
+
+**Set timeout limits** with Newman flags:
+
+```bash
+plaintest run user_tests --timeout 5000  # 5 second timeout
+```
+
+This validates that your API responds within acceptable time limits during functional testing. For actual performance testing with load simulation, use dedicated tools.
+
 ## The Framework in Action
 
 Complete workflow:
