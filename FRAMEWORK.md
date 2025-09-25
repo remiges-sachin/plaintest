@@ -2,6 +2,8 @@
 
 PlainTest makes API testing efficient by separating concerns.
 
+PlainTest is a functional and regression testing framework. It validates API behavior and correctness, not performance or load capacity.
+
 Three things to remember:
 1. Smoke tests run first (5 tests, 30 seconds)
 2. CSV data drives iteration
