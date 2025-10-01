@@ -185,6 +185,78 @@ This gives you a service account that can authenticate and carry the right permi
 
 One collection tests one business capability. Folders organize different scenarios of that capability.
 
+## Keep Tests Simple
+
+A test you don't understand is a test you can't maintain.
+
+If a tester can't understand your test logic, the test is too complex. Break it down.
+
+**Simple test example:**
+```javascript
+pm.test("Status is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has user ID", function () {
+    pm.expect(pm.response.json().id).to.exist;
+});
+```
+
+Two separate tests. Each checks one thing. Failure tells you exactly what broke.
+
+**Complex test example:**
+```javascript
+pm.test("User creation validates everything", function () {
+    pm.response.to.have.status(200);
+    const body = pm.response.json();
+    pm.expect(body.id).to.exist;
+    pm.expect(body.email).to.equal(pm.environment.get("test_email"));
+    pm.expect(body.created_at).to.match(/\d{4}-\d{2}-\d{2}/);
+    pm.expect(body.roles).to.be.an('array');
+});
+```
+
+One test checks five things. Failure says "User creation validates everything failed." Which part failed? You have to debug to find out.
+
+**Avoid unnecessary abstraction:**
+
+DRY (Don't Repeat Yourself) makes code complex. Tests aren't code. Clarity beats reuse.
+
+**Complex abstraction example:**
+```javascript
+function validateResponse(expectedFields, patterns) {
+    expectedFields.forEach(field => {
+        pm.expect(pm.response.json()[field]).to.exist;
+        if (patterns[field]) {
+            pm.expect(pm.response.json()[field]).to.match(patterns[field]);
+        }
+    });
+}
+
+validateResponse(['id', 'email', 'created_at'], {
+    created_at: /\d{4}-\d{2}-\d{2}/
+});
+```
+
+What does this test? You have to read the function. Then read the call. Then mentally execute it.
+
+**Simple repetition example:**
+```javascript
+pm.test("Response has id", function () {
+    pm.expect(pm.response.json().id).to.exist;
+});
+
+pm.test("Response has email", function () {
+    pm.expect(pm.response.json().email).to.exist;
+});
+
+pm.test("Created date format is correct", function () {
+    pm.expect(pm.response.json().created_at).to.match(/\d{4}-\d{2}-\d{2}/);
+});
+```
+
+Repetitive? Yes. Clear? Absolutely. You know exactly what each test does.
+
 ## Collection Organization Strategies
 
 **Use one collection with folders when:**
