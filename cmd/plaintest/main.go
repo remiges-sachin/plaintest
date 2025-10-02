@@ -11,6 +11,7 @@ import (
 	"github.com/ssd532/plaintest/internal/core"
 	"github.com/ssd532/plaintest/internal/csv"
 	"github.com/ssd532/plaintest/internal/newman"
+	"github.com/ssd532/plaintest/internal/payloadsync"
 	"github.com/ssd532/plaintest/internal/scriptsync"
 	"github.com/ssd532/plaintest/internal/templates"
 )
@@ -453,6 +454,44 @@ var scriptsPushCmd = &cobra.Command{
 	},
 }
 
+var payloadsCmd = &cobra.Command{
+	Use:   "payloads",
+	Short: "Manage request payloads",
+	Long:  "Pull request bodies from collections to editable JSON files or push edited payloads back to collections.",
+}
+
+var payloadsPullCmd = &cobra.Command{
+	Use:   "pull [collection-name]",
+	Short: "Pull request bodies from collection to JSON files",
+	Long:  "Pulls all request bodies from a Postman collection to individual JSON files for editing.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		collectionName := args[0]
+		service := payloadsync.NewService(payloadsync.Config{})
+		if err := service.Extract(collectionName); err != nil {
+			fmt.Printf("Error pulling payloads: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfully extracted payloads from %s to payloads/%s/\n", collectionName, collectionName)
+	},
+}
+
+var payloadsPushCmd = &cobra.Command{
+	Use:   "push [collection-name]",
+	Short: "Push updated payloads from JSON files to collection",
+	Long:  "Pushes request bodies from edited JSON files back to the Postman collection. Payload files are the source of truth.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		collectionName := args[0]
+		service := payloadsync.NewService(payloadsync.Config{})
+		if err := service.Build(collectionName); err != nil {
+			fmt.Printf("Error pushing payloads: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfully updated %s with payloads from payloads/%s/\n", collectionName, collectionName)
+	},
+}
+
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List project resources",
@@ -771,10 +810,14 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(scriptsCmd)
+	rootCmd.AddCommand(payloadsCmd)
 	rootCmd.AddCommand(listCmd)
 
 	scriptsCmd.AddCommand(scriptsPullCmd)
 	scriptsCmd.AddCommand(scriptsPushCmd)
+
+	payloadsCmd.AddCommand(payloadsPullCmd)
+	payloadsCmd.AddCommand(payloadsPushCmd)
 
 	listCmd.AddCommand(listCollectionsCmd)
 	listCmd.AddCommand(listDataCmd)
