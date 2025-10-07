@@ -66,24 +66,20 @@ go build -o plaintest ./cmd/plaintest
 **Learn the architecture**
 [ARCHITECTURE.md](ARCHITECTURE.md) shows how PlainTest proxies Newman.
 
-**Sync Postman scripts**
-[SCRIPT_SYNC.md](SCRIPT_SYNC.md) covers the pull-edit-push workflow.
-
 ### Documents by Purpose
 
 | Document | Answers |
 |----------|---------|
 | [QUICK_START.md](QUICK_START.md) | How do I run my first tests? Step-by-step guide. |
-| [USER_DOCS.md](USER_DOCS.md) | How do I run tests? What commands exist? |
+| [CLI_REFERENCE.md](CLI_REFERENCE.md) | How do I run tests? What commands exist? How do I edit Postman scripts? |
 | [SETUP_TEST_DESIGN.md](SETUP_TEST_DESIGN.md) | Why separate setup from tests? |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How does PlainTest work internally? |
-| [SCRIPT_SYNC.md](SCRIPT_SYNC.md) | How do I edit Postman scripts? |
 
 ### For Different Users
 
-**Testers**: Start with [QUICK_START.md](QUICK_START.md). Read USER_DOCS for all commands.
+**Testers**: Start with [QUICK_START.md](QUICK_START.md). Read CLI_REFERENCE for all commands.
 
-**Developers**: Read ARCHITECTURE for internals. Check SCRIPT_SYNC for editing collections.
+**Developers**: Read ARCHITECTURE for internals. Check CLI_REFERENCE for commands.
 
 **Architects**: Read SETUP_TEST_DESIGN for design rationale. Review ARCHITECTURE for implementation.
 

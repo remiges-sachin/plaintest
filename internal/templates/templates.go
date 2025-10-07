@@ -22,6 +22,7 @@ func (p *ProjectInitializer) CreateProjectStructure() error {
 		"data",
 		"environments",
 		"reports",
+		"payloads",
 	}
 	for _, dir := range directories {
 		if err := os.MkdirAll(dir, 0755); err != nil {

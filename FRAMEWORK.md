@@ -2,6 +2,8 @@
 
 PlainTest makes API testing efficient by separating concerns.
 
+PlainTest is a functional and regression testing framework. It validates API behavior and correctness, not performance or load capacity.
+
 Three things to remember:
 1. Smoke tests run first (5 tests, 30 seconds)
 2. CSV data drives iteration
@@ -32,6 +34,7 @@ You could apply these layers manually with Newman. The CLI just makes it automat
 ```
 plaintest-project/
 ├── collections/     # Test logic
+├── scripts/        # Extracted JavaScript files
 ├── data/           # Test cases
 ├── environments/   # Configurations
 └── reports/        # Results
@@ -39,7 +42,7 @@ plaintest-project/
 
 Collections contain your Postman exports. Data holds CSV files with test cases. Environments store URLs and settings. Reports capture what happened.
 
-This structure separates test logic from test data from test configuration.
+This structure separates test logic from test scripts from test data from test configuration.
 
 ## Practical Problems PlainTest Solves
 
@@ -181,6 +184,140 @@ This gives you a service account that can authenticate and carry the right permi
 - `send_welcome` - POST to /notifications
 
 One collection tests one business capability. Folders organize different scenarios of that capability.
+
+## Keep Tests Simple
+
+A test you don't understand is a test you can't maintain.
+
+If a tester can't understand your test logic, the test is too complex. Break it down.
+
+**Simple test example:**
+```javascript
+pm.test("Status is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has user ID", function () {
+    pm.expect(pm.response.json().id).to.exist;
+});
+```
+
+Two separate tests. Each checks one thing. Failure tells you exactly what broke.
+
+**Complex test example:**
+```javascript
+pm.test("User creation validates everything", function () {
+    pm.response.to.have.status(200);
+    const body = pm.response.json();
+    pm.expect(body.id).to.exist;
+    pm.expect(body.email).to.equal(pm.environment.get("test_email"));
+    pm.expect(body.created_at).to.match(/\d{4}-\d{2}-\d{2}/);
+    pm.expect(body.roles).to.be.an('array');
+});
+```
+
+One test checks five things. Failure says "User creation validates everything failed." Which part failed? You have to debug to find out.
+
+**Avoid unnecessary abstraction:**
+
+DRY (Don't Repeat Yourself) makes code complex. Tests aren't code. Clarity beats reuse.
+
+**Complex abstraction example:**
+```javascript
+function validateResponse(expectedFields, patterns) {
+    expectedFields.forEach(field => {
+        pm.expect(pm.response.json()[field]).to.exist;
+        if (patterns[field]) {
+            pm.expect(pm.response.json()[field]).to.match(patterns[field]);
+        }
+    });
+}
+
+validateResponse(['id', 'email', 'created_at'], {
+    created_at: /\d{4}-\d{2}-\d{2}/
+});
+```
+
+What does this test? You have to read the function. Then read the call. Then mentally execute it.
+
+**Simple repetition example:**
+```javascript
+pm.test("Response has id", function () {
+    pm.expect(pm.response.json().id).to.exist;
+});
+
+pm.test("Response has email", function () {
+    pm.expect(pm.response.json().email).to.exist;
+});
+
+pm.test("Created date format is correct", function () {
+    pm.expect(pm.response.json().created_at).to.match(/\d{4}-\d{2}-\d{2}/);
+});
+```
+
+Repetitive? Yes. Clear? Absolutely. You know exactly what each test does.
+
+## Collection Organization Strategies
+
+**Use one collection with folders when:**
+- Same API and base URL
+- Same authentication method
+- Want single file to manage
+
+Example structure:
+```
+user_api/
+├── Auth/
+│   └── Login
+├── Users/
+│   ├── Create
+│   └── Update
+└── Admin/
+    └── Delete
+```
+
+**Use separate collections when:**
+- Different APIs or services
+- Different run schedules (smoke vs regression)
+- Different team ownership
+- Need clean separation between setup and tests
+
+Example structure:
+```
+collections/
+├── smoke.json         # Quick health checks
+├── auth.json          # Just authentication
+└── user_tests.json    # User operations
+```
+
+Choose based on how you want to organize and run your tests.
+
+## Script Management
+
+Postman stores scripts as strings in JSON files. You can't edit strings in your IDE. You can't see diffs properly. You can't run linters.
+
+PlainTest extracts scripts to JavaScript files.
+
+Why? Scripts are code. Code needs proper tools.
+
+Structure after extraction:
+```
+scripts/
+├── user_api/
+│   ├── _collection__test.js      # Collection-level tests
+│   └── create_user__test.js      # Request-specific tests
+```
+
+Benefits:
+- Edit in VS Code with syntax highlighting
+- Git shows real code changes
+- Use ESLint and prettier
+
+Extract once: `plaintest scripts pull user_api`
+Edit as JavaScript.
+Push back: `plaintest scripts push user_api`
+
+The principle: Separate test structure (collection) from test logic (scripts). Each lives in its natural format.
 
 ## Running Tests
 
@@ -329,6 +466,30 @@ plaintest run auth user_registration_csv -e ci -d user_data.csv
 ```
 
 Choose based on whether you need consistency or uniqueness.
+
+## Response Time Validation
+
+PlainTest validates response times, not system performance.
+
+PlainTest runs tests sequentially through Newman. It cannot simulate concurrent users or measure system load. For load testing, use k6, JMeter, or Locust.
+
+What PlainTest can do:
+
+**Assert response times** in test scripts:
+
+```javascript
+pm.test("Response time under 500ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(500);
+});
+```
+
+**Set timeout limits** with Newman flags:
+
+```bash
+plaintest run user_tests --timeout 5000  # 5 second timeout
+```
+
+This validates that your API responds within acceptable time limits during functional testing. For actual performance testing with load simulation, use dedicated tools.
 
 ## The Framework in Action
 
